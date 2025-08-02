@@ -38,6 +38,6 @@ docker compose --profile all down
 Detener los servicios y eliminar toda la infraestructura (liberando espacio en disco):
 
 ```bash
-docker compose down --rmi all --volumes
+docker compose --profile all down --rmi all --volumes
 ```
 Nota: Si haces esto, perderás todo en los buckets y bases de datos.

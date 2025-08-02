@@ -396,6 +396,14 @@ services:
         echo "Files in shared volumes:"
         echo
         ls -la /opt/airflow/{logs,dags,plugins,config}
+        echo
+        echo "Change ownership of files in /opt/secrets to ${AIRFLOW_UID}:${AIRFLOW_GID:-0}"
+        echo
+        chown -R "${AIRFLOW_UID:-50000}:${AIRFLOW_GID:-0}" /opt/secrets/
+        echo
+        echo "Files in shared volumes:"
+        echo
+        ls -la /opt/secrets
     # yamllint enable rule:line-length
     environment:
       <<: *airflow-common-env
