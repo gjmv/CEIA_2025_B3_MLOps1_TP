@@ -24,7 +24,8 @@ def champion_callback(study, frozen_trial):
             )
         else:
             print(f"Initial trial {frozen_trial.number} achieved value: {frozen_trial.value}")
-
+    elif frozen_trial.number % 10 == 0:
+        print(f"Trial {frozen_trial.number} with no changes.")
 
 def objective(trial, X_train, y_train, experiment_id):
     """
@@ -52,68 +53,31 @@ def objective(trial, X_train, y_train, experiment_id):
     with mlflow.start_run(experiment_id=experiment_id, 
                           run_name=f"Trial: {trial.number}", nested=True):
 
+        max_depth = trial.suggest_int("max_depth", 1, 30)
+        criterion = trial.suggest_categorical("criterion", ["gini", "entropy"])
+        min_samples_split = trial.suggest_int("min_samples_split", 2, 20)
+        min_samples_leaf = trial.suggest_int("min_samples_leaf", 1, 20)
+
+        classifier = DecisionTreeClassifier(criterion=criterion, splitter='best', 
+                                            max_depth=max_depth, min_samples_split=min_samples_split, 
+                                            min_samples_leaf=min_samples_leaf, random_state=42)
+
         # Parámetros a logguear
         params = {
-            "objective": "clas:f1",
-            "eval_metric": "f1"
+            "eval_metric": "f1_weighted",
+            "max_depth": max_depth,
+            "criterion": criterion,
+            "min_samples_split": min_samples_split,
+            "min_samples_leaf": min_samples_leaf
         }
 
-        # Sugiere valores para los hiperparámetros utilizando el objeto trial de optuna.
-        classifier_name = trial.suggest_categorical('classifier', ['SVC_linear', 
-                                                                   'SVC_poly', 
-                                                                   'SVC_rbf',
-                                                                   'DecisionTreeClassifier', 
-                                                                   'RandomForest'])
-        if 'SVC' in classifier_name:
-            # Support Vector Classifier (SVC)
-            params["model"] = "SVC"
-            svc_c = trial.suggest_float('svc_c', 0.01, 100, log=True) # Parámetro de regularización
-            kernel = 'linear'
-            degree = 3
-
-            if classifier_name == 'SVC_poly':
-                # Si un kernel polinomial es elegido
-                degree = trial.suggest_int('svc_poly_degree', 2, 6) # Grado del polinomio
-                kernel = 'poly'
-                params["degree"] = degree
-            elif classifier_name == 'SVC_rbf':
-                # Si un kernel de función radial es elegido
-                kernel = 'rbf'
-
-            params["kernel"] = kernel
-            params["C"] = svc_c
-            
-            # Crea un clasificador SVM con los parámetros establecidos
-            classifier_obj = SVC(C=svc_c, kernel=kernel, gamma='scale', degree=degree)
-
-        elif classifier_name == 'DecisionTreeClassifier':
-            # Decision Tree Classifier
-            tree_max_depth = trial.suggest_int("tree_max_depth", 2, 32, log=True) # Máxima profundidad del arbol
-
-            classifier_obj = DecisionTreeClassifier(max_depth=tree_max_depth) 
-
-            params["model"] = "DecisionTreeClassifier"
-            params["max_depth"] = tree_max_depth
-
-        else:
-            # Random Forest Classifier
-            rf_max_depth = trial.suggest_int("rf_max_depth", 2, 32, log=True) # Máxima profundidad de los arboles
-            rf_n_estimators = trial.suggest_int("rf_n_estimators", 2, 10, log=True) # Número de arboles
-
-            classifier_obj = RandomForestClassifier(max_depth=rf_max_depth, 
-                                                    n_estimators=rf_n_estimators)
-            
-            params["model"] = "RandomForestClassifier"
-            params["max_depth"] = rf_max_depth
-            params["n_estimators"] = rf_n_estimators
-        
         # Realizamos validación cruzada y calculamos el score F1
-        score = cross_val_score(classifier_obj, X_train, y_train.to_numpy().ravel(), 
-                                n_jobs=-1, cv=5, scoring='f1')
+        score = cross_val_score(classifier, X_train, y_train.to_numpy().ravel(), 
+                                n_jobs=-1, cv=5, scoring='f1_weighted')
         
         # Log los hiperparámetros a MLflow
         mlflow.log_params(params)
         # Y el score f1 medio de la validación cruzada.
-        mlflow.log_metric("f1", score.mean())
+        mlflow.log_metric("f1_weighted", score.mean())
 
     return score.mean()

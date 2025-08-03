@@ -85,6 +85,12 @@ def process_etl_chicago_crimes_2024():
         """
         import awswrangler as wr
         import pandas as pd
+        import json
+        import datetime
+        import boto3
+        import botocore.exceptions
+        import mlflow
+        import numpy as np
 
         data_original_path = f"{s3_base_path}/chicago_crimes_2024.csv"
         data_preprocessed_path = f"{s3_base_path}/chicago_crimes_2024_preprocessed.csv"
@@ -116,16 +122,6 @@ def process_etl_chicago_crimes_2024():
         wr.s3.to_csv(df=dataset,
                      path=data_preprocessed_path,
                      index=False)
-
-        import json
-        import datetime
-        import boto3
-        import botocore.exceptions
-        import mlflow
-        import numpy as np
-
-        # import awswrangler as wr
-        # import pandas as pd
 
         # Save information of the dataset
         client = boto3.client('s3')
@@ -192,10 +188,10 @@ def process_etl_chicago_crimes_2024():
         from category_encoders import TargetEncoder
         from sklearn.compose import ColumnTransformer
         import pandas as pd
-        import mlflow
         import boto3
         import joblib
         import tempfile
+ 
 
         data_preprocessed_path = f"{s3_base_path}/chicago_crimes_2024_preprocessed.csv"
         dataset = wr.s3.read_csv(data_preprocessed_path)
@@ -249,7 +245,6 @@ def process_etl_chicago_crimes_2024():
         # Ahora aplicamos el transform en test
         X_test_procesado = pipeline.transform(X_test)
         
-
         numericas_salida = numericas # las numéricas transformadas
         nominales_salida = cardinalidad_media # las categoricas de cardinalidad media transformadas
         binarias_salida = pipeline.named_steps['preprocessor'].named_transformers_['bin'].named_steps['onehot'].get_feature_names_out(cardinalidad_baja)
