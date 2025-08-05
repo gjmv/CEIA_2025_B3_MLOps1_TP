@@ -41,7 +41,12 @@ def process_etl_chicago_crimes_2024():
     )
     def get_data(s3_base_path):
         """
-        Load the raw data from Chicago Data Portal and save in S3
+        Descarga los datos crudos del portal de datos abiertos de Chicago y los guarda en S3 como CSV.
+        
+        Parámetros:
+        -----------
+        s3_base_path : str
+            Ruta base en S3 donde se guardará el archivo.
         """
         import pandas as pd
         import awswrangler as wr
@@ -81,7 +86,8 @@ def process_etl_chicago_crimes_2024():
     )
     def pre_process_columns(s3_base_path):
         """
-        Pre-process variables, drop duplicates, convert columns, etc.
+        Limpia y transforma el dataset, eliminando columnas innecesarias, duplicados, y generando nuevas variables temporales.
+        También guarda un resumen del dataset como JSON en S3 y registra el dataset en MLflow.
         """
         import awswrangler as wr
         import pandas as pd
@@ -144,7 +150,8 @@ def process_etl_chicago_crimes_2024():
         data_dict['target_col'] = "fbi_code"
         categorical_cols.remove("fbi_code")
         data_dict['categorical_columns'] = categorical_cols
-
+        
+        # Guardamos valores posibles por columna categórica
         categories_dict = {}
         for category in categorical_cols:
             categories_dict[category] = np.sort(dataset[category].unique()).tolist()
@@ -155,7 +162,8 @@ def process_etl_chicago_crimes_2024():
         data_string = json.dumps(data_dict, indent=2)
 
         client.put_object(Bucket='data', Key='chicago/crimes/data_info/data.json', Body=data_string)
-
+        
+        # Log en MLflow
         mlflow.set_tracking_uri('http://mlflow:5000')
         experiment = mlflow.set_experiment("Chicago Crimes 2024")
 
@@ -179,7 +187,8 @@ def process_etl_chicago_crimes_2024():
     )
     def dataset_pre_process_data(s3_base_path):
         """
-        Generate a dataset split into a training part and a test part
+        Divide el dataset en conjunto de entrenamiento y prueba (estratificado), y lo transforma usando pipelines de sklearn.
+        Guarda los datos transformados y el pipeline serializado en S3.
         """
         import awswrangler as wr
         from sklearn.model_selection import train_test_split
@@ -192,8 +201,8 @@ def process_etl_chicago_crimes_2024():
         import boto3
         import joblib
         import tempfile
- 
-
+        
+        # Cargamos dataset ya preprocesado
         data_preprocessed_path = f"{s3_base_path}/chicago_crimes_2024_preprocessed.csv"
         dataset = wr.s3.read_csv(data_preprocessed_path)
 
@@ -205,7 +214,8 @@ def process_etl_chicago_crimes_2024():
         y = dataset[target_col]
 
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, stratify=y)
-
+        
+        # Definición de columnas y transformaciones
         numericas = ["latitude", "longitude"]
         cardinalidad_baja = ["arrest", "domestic", "dia_semana"]
         cardinalidad_media = ["iucr", "primary_type", "description", "location_description", "beat", "district", "ward", "community_area", "mes", "dia_mes", "hora"]
@@ -251,13 +261,14 @@ def process_etl_chicago_crimes_2024():
             list(binarias_salida) +
             list(nominales_salida) 
         )
-
+        
+        # Guardamos datasets en S3
         wr.s3.to_csv(df=pd.DataFrame(X_train_procesado), path=f"{s3_base_path}/final/X_train.csv", index=False)
         wr.s3.to_csv(df=pd.DataFrame(X_test_procesado), path=f"{s3_base_path}/final/X_test.csv", index=False)
         wr.s3.to_csv(df=pd.DataFrame(y_train), path=f"{s3_base_path}/final/y_train.csv", index=False)
         wr.s3.to_csv(df=pd.DataFrame(y_test), path=f"{s3_base_path}/final/y_test.csv", index=False)
 
-        # Save information of the dataset
+        # Guardamos pipeline entrenado
         client = boto3.client('s3')
 
         with tempfile.TemporaryFile() as fp:

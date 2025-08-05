@@ -6,44 +6,64 @@ from sklearn.model_selection import cross_val_score
 
 def champion_callback(study, frozen_trial):
     """
-    Logging callback that will report when a new trial iteration improves upon existing
-    best trial values.
+    Callback para Optuna que imprime un mensaje cuando un nuevo trial supera 
+    el mejor valor actual (best_value). También imprime cada 10 trials como progreso.
+
+    Parámetros:
+    -----------
+    study : optuna.study.Study
+        El objeto Study actual que está ejecutando la optimización.
+    frozen_trial : optuna.trial.FrozenTrial
+        Trial finalizado que acaba de completarse.
     """
-
+    
+    # Obtener el mejor valor previo registrado en user_attrs
     winner = study.user_attrs.get("winner", None)
-
+    
+    # Si el valor actual supera al ganador anterior
     if study.best_value and winner != study.best_value:
         study.set_user_attr("winner", study.best_value)
+        
         if winner:
+            # Calcular la mejora porcentual
             improvement_percent = (abs(winner - study.best_value) / study.best_value) * 100
             print(
                 f"Trial {frozen_trial.number} achieved value: {frozen_trial.value} with "
                 f"{improvement_percent: .4f}% improvement"
             )
         else:
+            # Primer ganador registrado
             print(f"Initial trial {frozen_trial.number} achieved value: {frozen_trial.value}")
     elif frozen_trial.number % 10 == 0:
+        # Mostrar progreso cada 10 trials
         print(f"Trial {frozen_trial.number} with no changes.")
 
 def objective(trial, X_train, y_train, experiment_id):
     """
-    Optimize hyperparameters for a classifier using Optuna.
+    Función objetivo para la optimización de hiperparámetros con Optuna.
 
-    Parameters:
+    Esta función entrena un clasificador `DecisionTreeClassifier` con distintos 
+    valores de hiperparámetros sugeridos por Optuna. Registra cada ejecución 
+    como un "run" anidado en MLflow, guarda los parámetros y el F1 Score.
+
+    Parámetros:
     -----------
     trial : optuna.trial.Trial
-        A trial is a process of evaluating an objective function.
+        Objeto que representa una iteración de búsqueda de hiperparámetros.
+    
     X_train : pandas.DataFrame
-        Input features for training.
+        Conjunto de datos de entrada para entrenamiento.
+    
     y_train : pandas.Series
-        Target variable for training.
+        Etiquetas del conjunto de entrenamiento.
+    
     experiment_id : int
-        ID of the MLflow experiment where results will be logged.
+        ID del experimento de MLflow donde se registrarán los resultados.
 
-    Returns:
+    Retorna:
     --------
     float
-        Weighted mean F1 score of the classifier after cross-validation.
+        Promedio del F1 Score ponderado en validación cruzada.
     """
 
     # Comienza el run de MLflow. Este run debería ser el hijo del run padre, 
