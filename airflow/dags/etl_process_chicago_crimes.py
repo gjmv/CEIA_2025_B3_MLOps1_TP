@@ -142,6 +142,7 @@ def process_etl_chicago_crimes_2024():
         # Upload JSON String to an S3 Object
         data_dict['columns'] = dataset.columns.drop("fbi_code").to_list()
         data_dict['target_col'] = "fbi_code"
+        categorical_cols.remove("fbi_code")
         data_dict['categorical_columns'] = categorical_cols
 
         categories_dict = {}
@@ -183,7 +184,7 @@ def process_etl_chicago_crimes_2024():
         import awswrangler as wr
         from sklearn.model_selection import train_test_split
         from sklearn.pipeline import Pipeline
-        from sklearn.preprocessing import OneHotEncoder, FunctionTransformer, MinMaxScaler
+        from sklearn.preprocessing import OneHotEncoder, MinMaxScaler
         from sklearn.impute import SimpleImputer
         from category_encoders import TargetEncoder
         from sklearn.compose import ColumnTransformer
@@ -209,17 +210,12 @@ def process_etl_chicago_crimes_2024():
         cardinalidad_baja = ["arrest", "domestic", "dia_semana"]
         cardinalidad_media = ["iucr", "primary_type", "description", "location_description", "beat", "district", "ward", "community_area", "mes", "dia_mes", "hora"]
         
-        # Convierte el dato en string
-        def to_str(X):
-            return X.astype(str)
-
         transformar_numericas = Pipeline(steps=[
             ('imputer', SimpleImputer(strategy='median')),
             ('scaler', MinMaxScaler())
         ])
 
         transformar_bajacard = Pipeline(steps=[
-            ('to_str', FunctionTransformer(to_str, validate=False)), # Para que no falle con categoricas string
             ('imputer', SimpleImputer(strategy='most_frequent')),
             ('onehot', OneHotEncoder(drop='first', handle_unknown='ignore'))  # drop=first para reducir los features
         ])
@@ -256,12 +252,8 @@ def process_etl_chicago_crimes_2024():
             list(nominales_salida) 
         )
 
-        # Reconstruimos el dataframe procesado
-        X_train_preproc = pd.DataFrame(X_train_procesado, columns=transformed_feature_names)
-        X_test_preproc = pd.DataFrame(X_test_procesado, columns=transformed_feature_names)
-
-        wr.s3.to_csv(df=pd.DataFrame(X_train_preproc), path=f"{s3_base_path}/final/X_train.csv", index=False)
-        wr.s3.to_csv(df=pd.DataFrame(X_test_preproc), path=f"{s3_base_path}/final/X_test.csv", index=False)
+        wr.s3.to_csv(df=pd.DataFrame(X_train_procesado), path=f"{s3_base_path}/final/X_train.csv", index=False)
+        wr.s3.to_csv(df=pd.DataFrame(X_test_procesado), path=f"{s3_base_path}/final/X_test.csv", index=False)
         wr.s3.to_csv(df=pd.DataFrame(y_train), path=f"{s3_base_path}/final/y_train.csv", index=False)
         wr.s3.to_csv(df=pd.DataFrame(y_test), path=f"{s3_base_path}/final/y_test.csv", index=False)
 
@@ -269,9 +261,9 @@ def process_etl_chicago_crimes_2024():
         client = boto3.client('s3')
 
         with tempfile.TemporaryFile() as fp:
-                joblib.dump(pipeline, fp)
-                fp.seek(0)  # Rewind to the beginning of the file-like object
-                client.put_object(Bucket="data", Key='chicago/crimes/data_info/pipeline.joblib', Body=fp.read())
+            joblib.dump(pipeline, fp)
+            fp.seek(0)  # Rewind to the beginning of the file-like object
+            client.upload_fileobj(Bucket="data", Key='chicago/crimes/data_info/pipeline.joblib', Fileobj=fp)
 
     s3_base_path = "s3://data/chicago/crimes/2024"
     get_data(s3_base_path) >> pre_process_columns(s3_base_path) >> dataset_pre_process_data(s3_base_path)

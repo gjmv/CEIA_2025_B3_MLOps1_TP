@@ -1,8 +1,6 @@
 import mlflow 
 
-from sklearn.svm import SVC 
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import cross_val_score
 
 
@@ -45,7 +43,7 @@ def objective(trial, X_train, y_train, experiment_id):
     Returns:
     --------
     float
-        Mean F1 score of the classifier after cross-validation.
+        Weighted mean F1 score of the classifier after cross-validation.
     """
 
     # Comienza el run de MLflow. Este run debería ser el hijo del run padre, 
