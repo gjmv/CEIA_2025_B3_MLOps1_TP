@@ -7,11 +7,15 @@ markdown_text = """
 
 Este DAG extrae información del dataset original de Crímenes de Chicago del año 2024, ubicado en Chicago Data Portal.
 [Crímenes Chicago 2024](https://data.cityofchicago.org/Public-Safety/Crimes-2024/dqcy-ctma/about_data). 
+El dataset original es guardado en S3.
 
-It preprocesses the data by creating dummy variables and scaling numerical features.
-    
-After preprocessing, the data is saved back into a S3 bucket as two separate CSV files: one for training and one for 
-testing. The split between the training and testing datasets is 70/30 and they are stratified.
+Realiza el preprocesamiento de las columnas, guardando el estado intermedio en S3.
+También guarda las columnas y las categorías para las categóricas.
+Crea el experimento y asocia el dataset.
+
+Por ultimo, separa X, y, train y test y los guarda en S3.
+Entrena la transforación de features en el set de train, aplica luego al set de test.
+Guarda el pipeline utilizado para la transformación.
 """
 
 
@@ -251,16 +255,6 @@ def process_etl_chicago_crimes_2024():
         # Ahora aplicamos el transform en test
         X_test_procesado = pipeline.transform(X_test)
         
-        numericas_salida = numericas # las numéricas transformadas
-        nominales_salida = cardinalidad_media # las categoricas de cardinalidad media transformadas
-        binarias_salida = pipeline.named_steps['preprocessor'].named_transformers_['bin'].named_steps['onehot'].get_feature_names_out(cardinalidad_baja)
-
-        # Armamos los nombres de las variables en orden de acuerdo a la pipeline
-        transformed_feature_names = (
-            list(numericas_salida) +
-            list(binarias_salida) +
-            list(nominales_salida) 
-        )
         
         # Guardamos datasets en S3
         wr.s3.to_csv(df=pd.DataFrame(X_train_procesado), path=f"{s3_base_path}/final/X_train.csv", index=False)

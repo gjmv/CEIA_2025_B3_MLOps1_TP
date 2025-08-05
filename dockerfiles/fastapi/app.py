@@ -24,8 +24,7 @@ def load_model(model_params: tuple[str, str, str]):
     Load a trained model and associated data dictionary.
 
     This function attempts to load a trained model specified by its name and alias. If the model is not found in the
-    MLflow registry, it loads the default model from a file. Additionally, it loads information about the ETL pipeline
-    from an S3 bucket. If the data dictionary is not found in the S3 bucket, it loads it from a local file.
+    MLflow registry, it loads the default model from a file. 
 
     :param model_params[0]: The name of the model.
     :param model_params[1]: The alias of the model version.
@@ -52,7 +51,9 @@ def load_model(model_params: tuple[str, str, str]):
 
 def load_data_transformation(fallback_columns_file: str, fallback_pipeline_file: str):
     """
-    Load columns and categories file. Load pipeline transformation file.
+    Load columns and categories file and load pipeline transformation file about the ETL pipeline
+    from an S3 bucket. 
+    If the data dictionary is not found in the S3 bucket, it loads it from a local file.
 
     :param fallback_columns_file: Local json filename to load with columns and categories in case of remote error.
     :param fallback_pipeline_file: Local joblib filename to load with pipeline transformation in case of remote error.
@@ -131,92 +132,94 @@ class ModelInput(BaseModel):
     This class defines the input fields required by the Chicago Crimes prediction model along with their descriptions
     and validation constraints.
 
-    :param age: Age of the patient (0 to 150).
-    :param sex: Sex of the patient. 1: male; 0: female.
-    :param cp: Chest pain type. 1: typical angina; 2: atypical angina; 3: non-anginal pain; 4: asymptomatic.
-    :param trestbps: Resting blood pressure in mm Hg on admission to the hospital (90 to 220).
-    :param chol: Serum cholestoral in mg/dl (110 to 600).
-    :param fbs: Fasting blood sugar. 1: >120 mg/dl; 0: <120 mg/dl.
-    :param restecg: Resting electrocardiographic results. 0: normal; 1: having ST-T wave abnormality; 2: showing
-                    probable or definite left ventricular hypertrophy.
-    :param thalach: Maximum heart rate achieved (beats per minute) (50 to 210).
-    :param exang: Exercise induced angina. 1: yes; 0: no.
-    :param oldpeak: ST depression induced by exercise relative to rest (0.0 to 7.0).
-    :param slope: The slope of the peak exercise ST segment. 1: upsloping; 2: flat; 3: downsloping.
-    :param ca: Number of major vessels colored by flourosopy (0 to 3).
-    :param thal: Thalassemia disease. 3: normal; 6: fixed defect; 7: reversable defect.
+    :param iucr: The Illinois Uniform Crime Reporting code.
+    :param primary_type: The primary description of the IUCR code.
+    :param description: The secondary description of the IUCR code, a subcategory of the primary description.
+    :param location_description: Description of the location where the incident occurred.
+    :param arrest: Indicates whether an arrest was made.
+    :param domestic: Indicates whether the incident was domestic-related as defined by the Illinois Domestic Violence Act.
+    :param beat: Indicates the beat where the incident occurred.
+    :param district: Indicates the police district where the incident occurred.
+    :param ward: The ward (City Council district) where the incident occurred.
+    :param community_area: Indicates the community area where the incident occurred.
+    :param latitude: The latitude of the location where the incident occurred.
+    :param longitude: The longitude of the location where the incident occurred.
+    :param mes: Month in witch the incident ocurred.
+    :param dia_mes: Day of month in witch the incident ocurred.
+    :param dia_semana: Day of week in witch the incident ocurred.
+    :param hora: Hour in witch the incident ocurred.
     """
 
     iucr: str = Field(
-        description="",
+        description="The Illinois Uniform Crime Reporting code.",
         min_length=4,
         max_length=4,
     )
     primary_type: str = Field(
-        description="",
+        description="The primary description of the IUCR code.",
         min_length=1
     )
     description: str = Field(
-        description="",
+        description="The secondary description of the IUCR code, a subcategory of the primary description.",
         min_length=1
     )
     location_description: str = Field(
-        description="",
+        description="Description of the location where the incident occurred.",
         min_length=1
     )
     arrest: bool = Field(
-        description=""
+        description="Indicates whether an arrest was made."
     )
     domestic: bool = Field(
-        description=""
+        description="Indicates whether the incident was domestic-related as defined by the Illinois Domestic Violence Act."
     )
     beat: int = Field(
-        description="",
+        description="Indicates the beat where the incident occurred.",
         ge=1,
         le=9999,
     )
     district: int = Field(
-        description="",
+        description="Indicates the police district where the incident occurred.",
         ge=1,
         le=999,
     )
     ward: int = Field(
-        description="",
+        description="The ward (City Council district) where the incident occurred.",
         ge=1,
         le=99,
     )
     community_area: int = Field(
-        description="",
+        description="Indicates the community area where the incident occurred.",
         ge=1,
         le=99,
     )
     latitude: float = Field(
-        description="",
+        description="The latitude of the location where the incident occurred.",
         ge=-90,
         le=90,
     )
     longitude: float = Field(
-        description="",
+        description="The longitude of the location where the incident occurred.",
         ge=-180,
         le=180,
     )
     mes: int = Field(
-        description="",
+        description="Month in witch the incident ocurred.",
         ge=1,
         le=12,        
     )
     dia_mes: int = Field(
-        description="",
+        description="Day of month in witch the incident ocurred.",
         ge=1,
         le=31, 
     )
     dia_semana: int = Field(
-        description="",
+        description="Day of week in witch the incident ocurred.",
         ge=1,
         le=7, 
     )
     hora: int = Field(
-        description="",
+        description="Hour in witch the incident ocurred.",
         ge=0,
         le=23, 
     )
@@ -327,8 +330,8 @@ class ModelOutput(BaseModel):
     This class defines the output fields returned by the Chicago Crimes prediction model along with their descriptions
     and possible values.
 
-    :param int_output: Output of the model. True if the patient has a heart disease.
-    :param str_output: Output of the model in string form. Can be "Healthy patient" or "Heart disease detected".
+    :param dtc_fbi_code_output: Output of the model. FBI Code predicted with Decision Tree Classifier.
+    :param lda_fbi_code_output: Output of the model. FBI Code predicted Linear Discriminant Analysis.
     """
 
     dtc_fbi_code_output: str = Field(
@@ -378,8 +381,8 @@ def predict(
     """
     Endpoint for predicting FBI Code from Chicago Crime Record.
 
-    This endpoint receives features related to Chicago Police Record and predicts the FBI Code using a trained model.
-     It returns the prediction result in string format.
+    This endpoint receives features related to Chicago Police Record and predicts the FBI Code using a two trained models.
+    It returns the prediction result in string format.
     """
 
     # Extract features from the request and convert them into a list and dictionary
@@ -398,6 +401,7 @@ def predict(
     # Reorder DataFrame columns
     features_df = features_df[data_dict["columns"]]
 
+    # Transform features with prefitted pipeline
     features_df = pipeline.transform(features_df)
 
     # Make the prediction using the trained models
