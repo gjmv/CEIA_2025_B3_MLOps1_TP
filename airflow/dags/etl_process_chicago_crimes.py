@@ -20,7 +20,7 @@ Guarda el pipeline utilizado para la transformación.
 
 
 default_args = {
-    'owner': "Mealla, Mendoza, Viñas",
+    'owner': "Mendoza, Viñas",
     'depends_on_past': False,
     'schedule_interval': None,
     'retries': 1,

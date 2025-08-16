@@ -10,7 +10,6 @@ Bimestre 3
 * Facundo Lucianna
 
 ## Integrantes:
-* Mealla Pablo
 * Mendoza Dante
 * Viñas Gustavo
 
