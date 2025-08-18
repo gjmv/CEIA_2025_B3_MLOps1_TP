@@ -215,8 +215,8 @@ class ModelInput(BaseModel):
     )
     dia_semana: int = Field(
         description="Day of week in witch the incident ocurred.",
-        ge=1,
-        le=7, 
+        ge=0,
+        le=6, 
     )
     hora: int = Field(
         description="Hour in witch the incident ocurred.",

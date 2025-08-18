@@ -99,7 +99,8 @@ Se puede consultar la documentación de la API en http://localhost:8800/docs
 
 ### Datos de prueba
 Se pueden encontrar datos para probar el endpoint de la API en la notebook "notebook_example\samples.ipynb".  
-Esta notebook cargará el dataset de columnas preprocesadas (sin transformación) y mostrará un registro de este dataset, junto al valor esperado (target).
+Esta notebook cargará el dataset de columnas preprocesadas (sin transformación) y mostrará un registro de este dataset, junto al valor esperado (target).  
+También contiene un ejemplo con uso de redis como cache intermedia, donde la predicción se busca primero en redis y de no encontrarse se invoca la API para generarla.
 
 ## Nota
 El proyecto realizó en Windows 11, aunque también fue probado en Ubuntu 24, sin encontrar inconvenientes a la hora de su ejecución (sin necesidad de cambiar el AIRFLOW_UID).  

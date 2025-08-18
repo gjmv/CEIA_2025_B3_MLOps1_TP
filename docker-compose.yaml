@@ -181,6 +181,25 @@ services:
       timeout: 10s
       retries: 3
 
+  valkey-api-cache:
+    image: valkey/valkey:8.1-bookworm
+    restart: always
+    profiles:
+      - all
+    networks:
+      - frontend
+    ports:
+      - "${VALKEY_PORT:-6379}:6379"
+    volumes:
+      - valkey_data:/data
+    command: valkey-server --requirepass ${VALKEY_PASSWORD:-data} --port 6379
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 10s
+      timeout: 30s
+      retries: 50
+      start_period: 30s
+
   fastapi:
     restart: always
     build: "./dockerfiles/fastapi"
@@ -192,6 +211,8 @@ services:
       mlflow:
         condition: service_healthy
       airflow-apiserver:
+        condition: service_healthy
+      valkey-api-cache:
         condition: service_healthy
     ports:
       - "${FASTAPI_PORT:-8800}:8800"
@@ -425,3 +446,4 @@ networks:
 volumes:
   db_data:
   minio_data:
+  valkey_data:
