@@ -54,6 +54,8 @@ Utilizaremos 2 modelos creados en la materia Aprendizaje de Máquina.
 Uno de ellos, Decision Tree Classifier, con búsqueda de hiperparámetros mediante optuna, disponible en la notebook notebook_example\experiment_DTC.ipynb.  
 El otro, un modelo sencillo de Linear Discriminant Analysis, disponible en la notebook notebook_example\experiment_LDA.ipynb.
 
+Los requisitos para la ejecución de las notebooks se encuentran en "notebook_example\requirements.txt" o como proyecto de uv en "notebook_example\pyproject.toml"
+
 Al ejecutar cada una de las notebooks, el proceso descargará los archivos de entrenamiento, entrenará el modelo y calculará las métricas contra el set de test. Toda esta información se guardará en MLFlow en el experimento llamado "Chicago Crimes 2024".  
 También se registrarán los modelos productivos, que será utilizado en la API para predecir.  
 
