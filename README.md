@@ -117,12 +117,14 @@ flowchart TB
         H[Postgres DB]
     end
 
+    %% Relaciones principales
+    A --> E["Data Lake - Crimes Chicago"]
     A --> B
     A --> C
     A <--> H
     C <--> H
     D --> C
-    B --> E["Data Lake - Crimes Chicago"]
+    D --> B
     C --> F["Registro de modelos"]
     D --> G["Cliente / App"]
 
@@ -140,35 +142,42 @@ flowchart TB
 ## 📌 Ciclo de vida del modelo
 ```mermaid
 flowchart LR
-    A["Datos en MinIO"] --> B["Airflow ETL"]
-    B --> C["Train/Test Split"]
-    C --> D["Entrenamiento (Notebook/Script)"]
-    D --> E["MLflow Tracking"]
-    E --> F["MLflow registro de modelos"]
-    F --> G["FastAPI Predicción"]
-    G --> H["Predicción al usuario"]
+    A["Data Lake - Crimes Chicago"] --> B["Airflow ETL"]
+    B <--> C["MinIO (Almacenamiento)"]
+    C --> D["Train/Test Split"]
+    D --> E["Entrenamiento (Notebook/Script)"]
+    E --> F["MLflow Tracking"]
+    F --> G["MLflow Registro de Modelos"]
+    G --> H["FastAPI Predicción"]
+    H --> I["Predicción al usuario"]
 
     %% Integración con Postgres
-    E <---> I["Postgres (Metadatos MLflow)"]
+    F <---> J["Postgres (Metadatos MLflow)"]
 
     %% Estilos
-    style A fill:#9467bd,stroke:#000,stroke-width:2px,color:#fff
+    style A fill:#8c564b,stroke:#000,stroke-width:2px,color:#fff
     style B fill:#1f77b4,stroke:#000,stroke-width:2px,color:#fff
-    style C fill:#8c564b,stroke:#000,stroke-width:2px,color:#fff
-    style D fill:#bcbd22,stroke:#000,stroke-width:2px,color:#fff
-    style E fill:#2ca02c,stroke:#000,stroke-width:2px,color:#fff
-    style F fill:#17becf,stroke:#000,stroke-width:2px,color:#fff
-    style G fill:#ff7f0e,stroke:#000,stroke-width:2px,color:#fff
-    style H fill:#d62728,stroke:#000,stroke-width:2px,color:#fff
-    style I fill:#7f7f7f,stroke:#000,stroke-width:2px,color:#fff
+    style C fill:#9467bd,stroke:#000,stroke-width:2px,color:#fff
+    style D fill:#2ca02c,stroke:#000,stroke-width:2px,color:#fff
+    style E fill:#bcbd22,stroke:#000,stroke-width:2px,color:#fff
+    style F fill:#2ca02c,stroke:#000,stroke-width:2px,color:#fff
+    style G fill:#17becf,stroke:#000,stroke-width:2px,color:#fff
+    style H fill:#ff7f0e,stroke:#000,stroke-width:2px,color:#fff
+    style I fill:#d62728,stroke:#000,stroke-width:2px,color:#fff
+    style J fill:#7f7f7f,stroke:#000,stroke-width:2px,color:#fff
 ```
 
 ## 📌 Pipeline dentro de Airflow (DAG)
 ```mermaid
 flowchart TD
-    subgraph Airflow_DAG
+    %% --- DAG de Airflow ---
+    subgraph Airflow_DAG["Airflow DAG"]
         Start["Start / Trigger DAG"] --> Ingest["Ingest Data"]
         Ingest --> Preprocess["Preprocess Data"]
+    end
+
+    %% --- Proceso en Notebooks ---
+    subgraph Notebooks["Notebooks"]
         Preprocess --> Train["Train Model"]
         Train --> Evaluate["Evaluate Model"]
 
@@ -187,4 +196,3 @@ flowchart TD
     style Register_Model fill:#9467bd,stroke:#000,stroke-width:2px,color:#fff
     style End fill:#d62728,stroke:#000,stroke-width:2px,color:#fff
 ```
-
